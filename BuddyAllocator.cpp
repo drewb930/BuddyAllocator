@@ -59,13 +59,19 @@ void* BuddyAllocator::alloc(int length) {
 			split(curr,start_index,size);
 			start_index--;
 		}
+		
 		BlockHeader* curr = FreeList.at(start_index).head;
 		while(curr->next != NULL) {
 			curr = curr->next;
 		}
 		curr-> in_free_list =false;
+		
+		FreeList.at(start_index).remove(curr);
+		 
 		return curr;
+		
 	}
+	
 	
 }
 
@@ -97,6 +103,12 @@ int BuddyAllocator::get_end_index(int size) {
 	
 }
 
+
+bool BuddyAllocator::arebuddies(BlockHeader* block1, BlockHeader* block2){
+	if(block1->buddy == block2 && block1->block_size == block2->block_size && block2->buddy == block1) return true;
+	else return false;
+}
+
 BlockHeader* BuddyAllocator::make_block(int size, char* address, int target_size){
 
 	 BlockHeader* block = reinterpret_cast<BlockHeader*>(address);
@@ -112,8 +124,8 @@ BlockHeader* BuddyAllocator::make_block(int size, char* address, int target_size
 		curr_size /= 2;
 	}
 	
-	if(size != target_size)FreeList.at(index).LinkedList::insert(block);
-	
+	FreeList.at(index).LinkedList::insert(block);
+		
 	return block;
 	
 }
@@ -124,7 +136,6 @@ void BuddyAllocator::split(BlockHeader* node, int i,int target_size){
 	
 	
 	char* curr_block = reinterpret_cast<char*>(node);
-	//confusion here
 	char* next_block = new char[this->total_memory_size];
 	memcpy(next_block, curr_block, sizeof(curr_block));
 	next_block += size;
@@ -135,18 +146,34 @@ void BuddyAllocator::split(BlockHeader* node, int i,int target_size){
 	
 	BlockHeader* block2 = make_block(size,next_block,target_size);
 	
-	
-	
-	
-	
-	cout << "Here" << endl;
+	node->buddy = block2;
+	block2->buddy = node;
 	
 }
 
+BlockHeader* BuddyAllocator::merge(BlockHeader* block1, BlockHeader* block2){
+	block1->buddy = NULL;
+	int index = get_end_index(block2->block_size);
+	FreeList.at(index).remove(block2);
+	if(block1->in_free_list)FreeList.at(index).remove(block1);
+	block2->block_size *= 2;
+	block2->next = NULL;
+	FreeList.at(index+1).insert(block2);
+	block2->buddy = FreeList.at(index+1).head;
+	return block2;
+	
+}
 
 void BuddyAllocator::free(void* a) {
-	/* Same here! */
-	//::free(a);
+	
+	
+	 BlockHeader* block1 = reinterpret_cast<BlockHeader*>(a);
+	 int curr_index = get_end_index(block1->block_size);
+	 while(arebuddies(block1,FreeList.at(curr_index).head) && curr_index != get_end_index(this->total_memory_size)){
+		block1 = merge(block1, FreeList.at(curr_index).head);
+		curr_index++;
+	 }
+
 }
 
 void BuddyAllocator::printlist() {

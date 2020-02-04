@@ -14,6 +14,7 @@ public:
 	bool in_free_list;
 	int block_size;  // size of the block
 	BlockHeader* next; // pointer to the next block
+	BlockHeader* buddy;
 
 };
 
@@ -29,10 +30,8 @@ public:
 		BlockHeader* curr = head;
 			if (head == NULL){
 				head = b;
-				cout << b  << " has been inserted at the head " << endl;
 			}
 			else {
-				cout << b  << " has been inserted at head -> next";
 				while (curr->next != NULL) {
 					cout << "-> next ";
 					curr = curr->next;
@@ -45,7 +44,6 @@ public:
 	void remove(BlockHeader* b) {  // removes a block from the list
 		BlockHeader* curr = head;
 		if (curr == b) {
-			cout<< "Curr = head" << endl;
 			head = curr->next;
 		}
 		else {
